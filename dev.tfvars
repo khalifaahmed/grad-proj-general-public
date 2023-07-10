@@ -1,0 +1,13 @@
+name                 = "gp_dev"
+vpc_cidr             = "10.0.0.0/16"
+provider_region      = "us-east-2"
+instance_type        = "t2.micro"
+key                  = "terraform_key_pair"
+access_ip_v4         = "0.0.0.0/0"
+access_ip_v6         = "::/0"
+ec2_count            = 0
+db_subnet_group      = true
+db_instance          = true
+public_subnet_count  = 7
+private_subnet_count = 3
+max_subnets          = 15

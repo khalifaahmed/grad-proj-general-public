@@ -1,0 +1,87 @@
+---
+- name: play-1 Install node & npm
+  hosts: all  #my_ec2
+  become: yes  
+  tasks:
+  - name: play-1-task-1 update apt repo & cache
+    apt: update_cache=yes force_apt_get=yes cache_valid_time=3600 upgrade=dist
+  - name: play-1-task-2 Install java
+    apt: name=openjdk-8-jre-headless
+  - name: task-3 Install net-tools
+    apt: name=net-tools
+- name: play-2 Download & Install nexus installer
+  hosts: all    #my_ec2
+  become: yes
+  tasks:
+  - name: play-2-task-1 Check if nexus folder exists
+    stat:
+      path: /opt/nexus  
+    register: stat_result
+  - debug: msg={{stat_result}}     
+  - name: play-2-task-2 Download nexus
+    get_url:
+      url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz 
+      dest: /opt/ 
+
+    when: not stat_result.stat.exists
+    
+    register: download_result
+  - debug: msg={{download_result}}  
+  - name: play-2-task-3 Untar nexus installer
+    unarchive:
+      src: "{{download_result.dest}}"
+      dest: /opt/
+      remote_src: yes
+    when: not stat_result.stat.exists
+  - name: play-2-task-4 Find nexus folder
+    find: 
+      paths: /opt
+      pattern: "nexus-*"
+      file_type: directory
+    register: find_result
+  - debug: msg={{find_result}}
+  - name: task-5 Rename nexus folder
+    shell: mv {{find_result.files[0].path}} /opt/nexus       
+    when: not stat_result.stat.exists
+- name: play-3 Create nexus user to own nexus folders
+  hosts: all      #my_ec2
+  become: yes
+  tasks:
+  - name: play-3-task-1 Ensure nexus group exits
+    group:
+      name: nexus
+      state: present
+  - name: play-3-task-2 create nexus user
+    user:
+      name: nexus
+      group: nexus
+  - name: play-3-task-3 Make nexus user the owner fo nexus folder
+    file:
+      path: /opt/nexus
+      state: directory
+      owner: nexus
+      group: nexus        
+      recurse: yes
+  - name: play-3-task-4 Make nexus user the owner fo sonatype-work folder
+    file:
+      path: /opt/sonatype-work
+      state: directory
+      owner: nexus
+      group: nexus        
+      recurse: yes      
+      #mode: '0755'
+      #mode: u+rw,g-wx,o-rwx
+- name: play-4 start nexus with nexus user
+  hosts: all       #my_ec2
+  become: True
+  #become_user: nexus
+  tasks:
+  - name: play-4-task-1 Set run-as-user 
+    lineinfile: 
+      path: /opt/nexus/bin/nexus.rc
+      regexp: '^#run_as_user=""'
+      line: run_as_user="nexus"
+  - name: play-4-task-2 Start nexus
+    command: /opt/nexus/bin/nexus start    
+
+    

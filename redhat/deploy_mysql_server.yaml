@@ -1,0 +1,58 @@
+- name: play-1 
+  #hosts: my_ec2
+  hosts: all
+  become: yes
+  tasks: 
+  - name: play-1--task-1 install packages 
+    vars:
+      ansible_python_interpreter: /usr/bin/python
+    yum:
+      name:
+      - python
+      - python3
+      - pip
+      - docker
+      - vim
+      - net-tools
+      - mysql-server
+      - mysql
+      update_cache: yes
+      state: present
+  - name: start & enable mysqld
+    systemd: 
+      name: mysqld
+      state: started
+      enabled: true      
+  - name: Install docker mysql module
+    vars:
+      ansible_python_interpreter: /usr/bin/python
+    pip: 
+      name: 
+      - mysql-connector 
+      - PyMySQL   
+  # - name: Install docker python module
+  #   vars:
+  #     ansible_python_interpreter: /usr/bin/python3
+  #   pip: 
+  #     name: 
+  #     - mysql-connector          
+  - name: Create database user with password and all database privileges and 'WITH GRANT OPTION'
+    community.mysql.mysql_user:
+      name: iti
+      password: iti
+      priv: '*.*:ALL,GRANT'
+      state: present
+      host: '%'
+      #host_all: true   #not allowed here mainly
+      # session_vars:
+      #   wsrep_on: off
+  - name: Removes all anonymous user accounts
+    community.mysql.mysql_user:
+      name: 'iti'
+      host_all: true
+      state: present      
+  - name: Set a hostname
+    ansible.builtin.hostname:
+      name: db-server   
+  - name: Reconnect to server session
+    meta: reset_connection      
