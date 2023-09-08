@@ -2,11 +2,11 @@ data "aws_availability_zones" "available" {}
 
 resource "random_shuffle" "az_list" {
   input        = data.aws_availability_zones.available.names
-  result_count = var.max_subnets
+  result_count = local.max_subnets
 }
 
 resource "aws_subnet" "public" {
-  count                   = var.public_subnet_count
+  count                   = local.public_subnet_count
   vpc_id                  = aws_vpc.my_vpc.id
   cidr_block              = local.public_cidrs[count.index]            
   availability_zone       = random_shuffle.az_list.result[count.index]
@@ -17,7 +17,7 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count                   = var.private_subnet_count
+  count                   = local.private_subnet_count
   vpc_id                  = aws_vpc.my_vpc.id
   cidr_block              = local.private_cidrs[count.index]          
   availability_zone       = random_shuffle.az_list.result[count.index] 
@@ -27,6 +27,6 @@ resource "aws_subnet" "private" {
   }
 }
 
-# output "number_of_az" {
-#   value = length(data.aws_availability_zones.available.names)
-# }
+output "number_of_az" {
+  value = length(data.aws_availability_zones.available.names)
+}

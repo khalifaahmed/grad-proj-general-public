@@ -27,8 +27,8 @@ resource "aws_db_instance" "grad_proj_db" {
   engine_version          = "14.6"
   instance_class          = "db.t3.micro"
   identifier              = "grad-proj-db"
-  db_subnet_group_name    = aws_db_subnet_group.grad_proj_subnet_group[0].name #db_subnet_group_name = aws_db_subnet_group.postgres_subnet_group.name
-  availability_zone       = "us-east-2b"
+  db_subnet_group_name    = aws_db_subnet_group.grad_proj_subnet_group[0].name 
+  availability_zone       = data.aws_availability_zones.available.names[1]
   multi_az                = false
   backup_retention_period = 0
   max_allocated_storage   = 0
@@ -39,6 +39,7 @@ resource "aws_db_instance" "grad_proj_db" {
   db_name                 = "postgres"
   username                = "gradproj"
   password                = "gradproj"
+  ca_cert_identifier      = "rds-ca-rsa4096-g1"  
 }
 
 output "db_endpoint" {

@@ -5,19 +5,6 @@ variable "name" {
   type = string
 }
 
-variable "public_subnet_count" {
-  type        = number
-  description = "at least 3 as number of az = 3"
-}
-variable "private_subnet_count" {
-  type = number
-}
-
-locals {
-  public_cidrs  = [for i in range(1, 255, 2) : cidrsubnet(var.vpc_cidr, 8, i)]
-  private_cidrs = [for i in range(2, 255, 2) : cidrsubnet(var.vpc_cidr, 8, i)]
-}
-
 variable "access_ip_v4" {
   type = string
 }
@@ -52,12 +39,13 @@ variable "key" {
   description = "description"
 }
 
-variable "max_subnets" {
-  type        = number
-  default     = 3
-  description = "the upper limit of the number of public subnets or private subnets separately, it will overwrite the public_subnet_count or private_subnet_count variables"
+locals {
+  public_cidrs  = [for i in range(1, 255, 2) : cidrsubnet(var.vpc_cidr, 8, i)]
+  private_cidrs = [for i in range(2, 255, 2) : cidrsubnet(var.vpc_cidr, 8, i)]
+  public_subnet_count  = length(data.aws_availability_zones.available.names)
+  private_subnet_count = length(data.aws_availability_zones.available.names)
+  max_subnets = length(data.aws_availability_zones.available.names) * 5
 }
-
 
 locals {
   security_groups = {

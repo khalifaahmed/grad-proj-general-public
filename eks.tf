@@ -127,7 +127,7 @@ resource "aws_eks_node_group" "eks_ng_public" {
   
   # Allowing ssh access to the node group instances through our ssh-key
   remote_access {
-    ec2_ssh_key = "terraform_key_pair"
+    ec2_ssh_key = var.key
   }
 
   # creating an autoscaling group with the desired number of ec2 instances
