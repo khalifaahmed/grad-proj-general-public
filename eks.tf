@@ -68,7 +68,7 @@ resource "aws_iam_role_policy_attachment" "eks-AmazonEC2ContainerRegistryReadOnl
 # Create AWS EKS Cluster 
 resource "aws_eks_cluster" "eks_cluster" {
   # the name of the cluster 
-  name     = "grad-proj-eks-cluster"
+  name = "grad-proj-eks-cluster"
   # attach the master IAM role we created previously to the cluster 
   role_arn = aws_iam_role.eks_master_role.arn
   # determine the wanted version of the cluster 
@@ -80,17 +80,17 @@ resource "aws_eks_cluster" "eks_cluster" {
     # preventing access the cluster through the node group instances
     endpoint_private_access = false
     # Allowing access the cluster through public access (our labtop)
-    endpoint_public_access  = true
+    endpoint_public_access = true
     # Allowing only our ip to access the cluster through kubectl 
     # but here we make it any ip, as our ip is not static
-    public_access_cidrs     = ["0.0.0.0/0"]   
+    public_access_cidrs = ["0.0.0.0/0"]
   }
-  
+
   # determine the ip range of the services created inside the cluster
   kubernetes_network_config {
     service_ipv4_cidr = "172.20.0.0/16"
   }
-  
+
   # Enable EKS Cluster Control Plane Logging (in cloudwatch logs)
   enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
@@ -110,36 +110,36 @@ resource "aws_eks_cluster" "eks_cluster" {
 # Create AWS EKS Node Group - Public
 resource "aws_eks_node_group" "eks_ng_public" {
   # Attach the node group to our eks cluster 
-  cluster_name    = aws_eks_cluster.eks_cluster.name
+  cluster_name = aws_eks_cluster.eks_cluster.name
 
   # name of the node group
   node_group_name = "grad-proj-eks-ng-public"
   # attach the eks_nodegroup IAM role we created to the node group
-  node_role_arn   = aws_iam_role.eks_nodegroup_role.arn
+  node_role_arn = aws_iam_role.eks_nodegroup_role.arn
   # provide the node group with a public subnet in each avalaibility zone in the region
-  subnet_ids      = [for i in range(0, length(data.aws_availability_zones.available.names), 1) : aws_subnet.public[i].id]   
+  subnet_ids = [for i in range(0, length(data.aws_availability_zones.available.names), 1) : aws_subnet.public[i].id]
 
   # determine the specifications of each ec2 instance in the node group   
-  ami_type = "AL2_x86_64"  
-  capacity_type = "ON_DEMAND"
-  disk_size = 10
-  instance_types = ["t2.micro"]
-  
-  # Allowing ssh access to the node group instances through our ssh-key
+  ami_type       = "AL2_x86_64"
+  capacity_type  = "ON_DEMAND"
+  disk_size      = 10
+  instance_types = data.aws_region.current_region.name == "eu-north-1" ? ["t3.micro"] : ["t2.micro"]           # ["t2.micro"]
+
+  # Allowing ssh access to the node group instances through our ssh-key we created
   remote_access {
-    ec2_ssh_key = var.key
+    ec2_ssh_key = aws_key_pair.key_pair.key_name
   }
 
   # creating an autoscaling group with the desired number of ec2 instances
   scaling_config {
-    desired_size = 7
-    min_size     = 5    
-    max_size     = 9
+    desired_size = 9
+    min_size     = 5
+    max_size     = 20
   }
 
   # Desired max percentage of unavailable worker nodes during node group update.
   update_config {
-    max_unavailable = 1    
+    max_unavailable = 1
     #max_unavailable_percentage = 50    # ANY ONE TO USE
   }
 
@@ -149,9 +149,31 @@ resource "aws_eks_node_group" "eks_ng_public" {
     aws_iam_role_policy_attachment.eks-AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.eks-AmazonEKS_CNI_Policy,
     aws_iam_role_policy_attachment.eks-AmazonEC2ContainerRegistryReadOnly,
-  ] 
+  ]
 
   tags = {
     Name = "Public-Node-Group"
+  }
+}
+
+
+
+
+output "autoscaling_group_name_created_by_the_node_group_of_eks_cluster" {
+  value = aws_eks_node_group.eks_ng_public.resources[0].autoscaling_groups[0].name
+}
+
+resource "aws_autoscaling_policy" "grad_proj" {
+  name = "target-tracking-policy"
+  #scaling_adjustment     = 4
+  #cooldown               = 100  
+  policy_type            = "TargetTrackingScaling"
+  adjustment_type        = "ChangeInCapacity"
+  autoscaling_group_name = aws_eks_node_group.eks_ng_public.resources[0].autoscaling_groups[0].name
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 50.0
   }
 }
