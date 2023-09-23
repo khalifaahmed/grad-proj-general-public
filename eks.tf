@@ -151,6 +151,10 @@ resource "aws_eks_node_group" "eks_ng_public" {
     aws_iam_role_policy_attachment.eks-AmazonEC2ContainerRegistryReadOnly,
   ]
 
+  provisioner "local-exec" {
+    command = "aws eks update-kubeconfig --region ${var.provider_region} --name grad-proj-eks-cluster"
+  }
+
   tags = {
     Name = "Public-Node-Group"
   }

@@ -43,7 +43,7 @@ resource "aws_db_instance" "grad_proj_db" {
 }
 
 output "db_endpoint" {
-  value = var.db_instance ? aws_db_instance.grad_proj_db[0].endpoint : ""
+  value = var.db_instance ? aws_db_instance.grad_proj_db[0].endpoint : " "
 }
 
 

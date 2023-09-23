@@ -5,10 +5,6 @@ resource "aws_vpc" "my_vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  lifecycle {
-    create_before_destroy = true
-  }
-
   tags = {
     Name = "${var.name}_vpc"
   }
